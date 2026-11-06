@@ -79,12 +79,13 @@ export function buildDemoData(today: ISODate): LedgerData {
   let counter = 0;
   const id = () => `demo-${(counter += 1).toString(36)}`;
 
-  // Mes inicial con 30 días o más, para que el día ancla del salario sea real.
+  // Mes inicial con 31 días, para que el día ancla del seguro (31) sea real y se ajuste en meses cortos.
   let anchorMonth = firstMonth;
-  while (daysInMonth(Number(anchorMonth.slice(0, 4)), Number(anchorMonth.slice(5))) < 30) anchorMonth = shiftMonth(anchorMonth, 1);
+  while (daysInMonth(Number(anchorMonth.slice(0, 4)), Number(anchorMonth.slice(5))) < 31) anchorMonth = shiftMonth(anchorMonth, 1);
 
   const recurring: Recurring[] = [
-    { id: 'rec-salario', name: 'Salario mensual', type: 'income', amount: 4_200_000, accountId: 'acc-ahorros', categoryId: 'cat-salario', frequency: 'monthly', startDate: clampDay(anchorMonth, 30), tags: ['nómina'] },
+    { id: 'rec-salario', name: 'Salario mensual', type: 'income', amount: 4_200_000, accountId: 'acc-ahorros', categoryId: 'cat-salario', frequency: 'monthly', startDate: clampDay(firstMonth, 1), tags: ['nómina'] },
+    { id: 'rec-seguro', name: 'Seguro de la moto', type: 'expense', amount: 96_500, accountId: 'acc-ahorros', categoryId: 'cat-transporte', frequency: 'monthly', startDate: clampDay(anchorMonth, 31), tags: ['seguro'] },
     { id: 'rec-arriendo', name: 'Arriendo del apartamento', type: 'expense', amount: 1_350_000, accountId: 'acc-ahorros', categoryId: 'cat-vivienda', frequency: 'monthly', startDate: clampDay(firstMonth, 5), tags: ['hogar'] },
     { id: 'rec-internet', name: 'Internet y celular', type: 'expense', amount: 129_900, accountId: 'acc-ahorros', categoryId: 'cat-servicios', frequency: 'monthly', startDate: clampDay(firstMonth, 12), tags: ['hogar'] },
     { id: 'rec-streaming', name: 'Plataforma de series', type: 'expense', amount: 29_900, accountId: 'acc-tarjeta', categoryId: 'cat-ocio', frequency: 'monthly', startDate: clampDay(firstMonth, 18), tags: ['suscripción'] },

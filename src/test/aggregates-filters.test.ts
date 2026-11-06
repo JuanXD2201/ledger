@@ -116,10 +116,10 @@ describe('datos de ejemplo', () => {
     expect(st.find((s) => s.categoryId === 'cat-mercado')!.level).toBe('warning');
   });
 
-  it('no tienen movimientos futuros y el salario cae a fin de mes', () => {
+  it('no tienen movimientos futuros y el seguro mensual del 31 baja a fin de febrero', () => {
     const d = buildDemoData('2025-03-10');
     expect(d.transactions.every((t) => t.date <= '2025-03-10')).toBe(true);
     expect(applyRecurring(d, '2025-03-10')).toBe(d);
-    expect(d.transactions.some((t) => t.recurringId === 'rec-salario' && t.date === '2025-02-28')).toBe(true);
+    expect(d.transactions.some((t) => t.recurringId === 'rec-seguro' && t.date === '2025-02-28')).toBe(true);
   });
 });

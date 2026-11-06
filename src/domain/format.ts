@@ -21,7 +21,7 @@ function utc(date: ISODate): Date {
   return new Date(Date.UTC(p.y, p.m - 1, p.d));
 }
 
-export const formatDate = (date: ISODate): string => (parseISO(date) ? dateFmt.format(utc(date)) : date);
+export const formatDate = (date: ISODate): string => (parseISO(date) ? dateFmt.format(utc(date)).replace(/ de /g, ' ') : date);
 export const formatDateLong = (date: ISODate): string => (parseISO(date) ? dateLong.format(utc(date)) : date);
 export const formatDateFull = (date: ISODate): string => (parseISO(date) ? dateDay.format(utc(date)) : date);
 export const formatMonth = (key: MonthKey): string => monthFmt.format(utc(`${key}-01`));
