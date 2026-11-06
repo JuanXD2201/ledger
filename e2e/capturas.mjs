@@ -62,6 +62,8 @@ async function recorrido(page, theme, suffix, viewportLabel) {
   await go('#/datos');
   await page.setInputFiles('[data-testid="archivo-csv"]', writeTmp('importar.csv', csv));
   await page.waitForSelector('[data-testid="vista-previa"]');
+  await page.getByTestId('vista-previa').scrollIntoViewIfNeeded();
+  if (suffix === 'movil') await page.evaluate(() => window.scrollBy(0, 330));
   await shoot(page, `importacion-${suffix}`);
   void theme; void viewportLabel;
 }

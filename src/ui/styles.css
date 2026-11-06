@@ -1631,9 +1631,7 @@ kbd {
   .page-head {
     margin-bottom: 20px;
   }
-  .btn--new-tx {
-    display: none;
-  }
+
   .hero {
     grid-template-columns: 1fr;
   }

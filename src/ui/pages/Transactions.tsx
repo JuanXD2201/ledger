@@ -61,7 +61,6 @@ export function Transactions({ onNew, onEdit }: { onNew: () => void; onEdit: (tx
       <PageHeader
         title="Movimientos"
         lead="Busca, filtra y corrige todo lo que has registrado."
-        actions={<button type="button" className="btn btn--new-tx" onClick={onNew}><Icon name="plus" size={18} /> Nuevo movimiento</button>}
       />
 
       <section className="toolbar" aria-label="Búsqueda y orden">

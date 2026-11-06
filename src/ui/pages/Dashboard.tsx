@@ -63,11 +63,6 @@ export function Dashboard({ onNew, go }: { onNew: () => void; go: (r: RoutePath)
       <PageHeader
         title="Panel"
         lead={`Así va tu dinero al ${formatDateLong(today)}.`}
-        actions={
-          <button type="button" className="btn btn--new-tx" onClick={onNew}>
-            <Icon name="plus" size={18} /> Nuevo movimiento
-          </button>
-        }
       />
 
       <section className="hero" aria-label="Resumen">
