@@ -1,0 +1,35 @@
+{
+  "name": "ledger",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Ledger: finanzas personales en el navegador, sin servidor.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --port 4173 --strictPort",
+    "typecheck": "tsc --noEmit",
+    "test": "jest",
+    "test:e2e": "node e2e/run.mjs",
+    "capturas": "node e2e/capturas.mjs"
+  },
+  "dependencies": {
+    "@fontsource-variable/fraunces": "^5.3.0",
+    "@fontsource-variable/source-sans-3": "^5.3.1",
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.2.1",
+    "jest": "^30.5.2",
+    "playwright-core": "^1.65.0",
+    "ts-jest": "^29.4.15",
+    "typescript": "5.9",
+    "vite": "^8.3.6"
+  }
+}
