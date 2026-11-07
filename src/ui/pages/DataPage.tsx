@@ -18,7 +18,7 @@ const TEMPLATE = toCsv([
   ['2026-01-07', 'transferencia', '200000', 'Cuenta de ahorros', 'Efectivo', '', '', 'Retiro'],
 ]);
 
-type Confirm = { kind: 'demo' } | { kind: 'empty' } | { kind: 'restore'; data: LedgerData; counts: string } | null;
+type Confirm = { kind: 'sample' } | { kind: 'empty' } | { kind: 'restore'; data: LedgerData; counts: string } | null;
 
 export function DataPage() {
   const ledger = useLedger();
@@ -89,8 +89,8 @@ export function DataPage() {
 
   const runConfirm = () => {
     if (!confirm) return;
-    if (confirm.kind === 'demo') {
-      ledger.loadDemo();
+    if (confirm.kind === 'sample') {
+      ledger.loadSample();
       toast({ message: 'Datos de ejemplo cargados.' });
     } else if (confirm.kind === 'empty') {
       ledger.startEmpty();
@@ -205,28 +205,28 @@ export function DataPage() {
         </section>
       </div>
 
-      <section className="panel" aria-labelledby="h-demo">
-        <h2 id="h-demo" className="h-serif">Datos de ejemplo</h2>
+      <section className="panel" aria-labelledby="h-sample">
+        <h2 id="h-sample" className="h-serif">Datos de ejemplo</h2>
         <p className="muted">Reemplaza el contenido actual. Si quieres conservarlo, descarga antes un respaldo.</p>
         <div className="row">
-          <button type="button" className="btn btn--ghost" onClick={() => setConfirm({ kind: 'demo' })}>Cargar datos de ejemplo</button>
+          <button type="button" className="btn btn--ghost" onClick={() => setConfirm({ kind: 'sample' })}>Cargar datos de ejemplo</button>
           <button type="button" className="btn btn--danger-ghost" onClick={() => setConfirm({ kind: 'empty' })}>Empezar vacío</button>
         </div>
         {!ledger.persistent && <p className="banner banner--alert" role="status">Tu navegador bloquea el almacenamiento local: los cambios se perderán al cerrar la pestaña.</p>}
         {ledger.saveError && <p className="banner banner--alert" role="alert">{ledger.saveError}</p>}
       </section>
 
-      <Modal open={confirm !== null} onClose={() => setConfirm(null)} title={confirm?.kind === 'restore' ? 'Restaurar respaldo' : confirm?.kind === 'demo' ? 'Cargar datos de ejemplo' : 'Empezar vacío'}>
+      <Modal open={confirm !== null} onClose={() => setConfirm(null)} title={confirm?.kind === 'restore' ? 'Restaurar respaldo' : confirm?.kind === 'sample' ? 'Cargar datos de ejemplo' : 'Empezar vacío'}>
         <div className="form">
           <p>
             {confirm?.kind === 'restore' && `Este respaldo contiene ${confirm.counts}. Reemplazará todo lo que tienes ahora (${data.transactions.length} movimientos).`}
-            {confirm?.kind === 'demo' && 'Se reemplazarán tus datos actuales por un libro de ejemplo con seis meses de movimientos.'}
+            {confirm?.kind === 'sample' && 'Se reemplazarán tus datos actuales por un libro de ejemplo con seis meses de movimientos.'}
             {confirm?.kind === 'empty' && 'Se borrarán tus movimientos, presupuestos y recurrentes. Quedará una cuenta de efectivo y las categorías básicas.'}
           </p>
           <div className="form__actions">
             <button type="button" className="btn btn--ghost" onClick={() => setConfirm(null)}>Cancelar</button>
             <button type="button" className={`btn${confirm?.kind === 'empty' ? ' btn--danger' : ''}`} onClick={runConfirm}>
-              {confirm?.kind === 'restore' ? 'Restaurar' : confirm?.kind === 'demo' ? 'Cargar ejemplo' : 'Sí, empezar vacío'}
+              {confirm?.kind === 'restore' ? 'Restaurar' : confirm?.kind === 'sample' ? 'Cargar ejemplo' : 'Sí, empezar vacío'}
             </button>
           </div>
         </div>

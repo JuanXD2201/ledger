@@ -8,6 +8,7 @@ import { nextOccurrence } from '../../domain/recurrence';
 import { sortTransactions } from '../../domain/filters';
 import { Amount, EmptyState, LevelBadge, PageHeader, ProgressBar } from '../components/common';
 import { Icon } from '../components/Icon';
+import { useSettings } from '../settings';
 import { TxTable } from '../components/TxTable';
 import { TrendLine } from '../charts/charts';
 import type { RoutePath } from '../hooks';
@@ -16,7 +17,8 @@ import { useLedger } from '../store';
 const ACCOUNT_LABEL = { cash: 'Efectivo', bank: 'Banco', credit: 'Tarjeta de crédito' } as const;
 
 export function Dashboard({ onNew, go }: { onNew: () => void; go: (r: RoutePath) => void }) {
-  const { data, today, loadDemo } = useLedger();
+  const { data, today, loadSample } = useLedger();
+  const [{ holder }] = useSettings();
   const month = monthKey(today);
 
   const view = useMemo(() => {
@@ -44,11 +46,11 @@ export function Dashboard({ onNew, go }: { onNew: () => void; go: (r: RoutePath)
           actions={
             <>
               <button type="button" className="btn" onClick={onNew}>Registrar un movimiento</button>
-              <button type="button" className="btn btn--ghost" onClick={loadDemo}>Cargar datos de ejemplo</button>
+              <button type="button" className="btn btn--ghost" onClick={loadSample}>Cargar datos de ejemplo</button>
             </>
           }
         >
-          Registra un gasto o un ingreso, o carga datos de ejemplo para recorrer la aplicación con información realista.
+          Registra un gasto o un ingreso, o carga datos de ejemplo para explorar la aplicación con información ya hecha.
         </EmptyState>
       </>
     );
@@ -62,7 +64,7 @@ export function Dashboard({ onNew, go }: { onNew: () => void; go: (r: RoutePath)
     <>
       <PageHeader
         title="Panel"
-        lead={`Así va tu dinero al ${formatDateLong(today)}.`}
+        lead={`${holder ? `${holder}, así` : 'Así'} va tu dinero al ${formatDateLong(today)}.`}
       />
 
       <section className="hero" aria-label="Resumen">

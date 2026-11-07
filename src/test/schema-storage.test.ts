@@ -1,5 +1,5 @@
 import { createBackup, parseBackup, readEnvelope, SCHEMA_VERSION, validateData } from '../domain/schema';
-import { buildDemoData } from '../domain/seed';
+import { buildSampleData } from '../domain/seed';
 import { starterData } from '../domain/seed';
 import { LocalStorageRepository, MemoryStore, STORAGE_KEY } from '../storage/repository';
 
@@ -37,7 +37,7 @@ describe('migración de esquema', () => {
 
 describe('validación de datos', () => {
   it('acepta los datos de ejemplo completos', () => {
-    const res = validateData(buildDemoData('2025-06-15'));
+    const res = validateData(buildSampleData('2025-06-15'));
     expect(res.ok).toBe(true);
   });
 
@@ -59,7 +59,7 @@ describe('validación de datos', () => {
 
 describe('respaldo JSON', () => {
   it('ida y vuelta sin pérdida', () => {
-    const data = buildDemoData('2025-06-15');
+    const data = buildSampleData('2025-06-15');
     const res = parseBackup(JSON.stringify(createBackup(data)));
     expect(res.ok).toBe(true);
     if (res.ok) expect(res.data).toEqual(data);
@@ -81,7 +81,7 @@ describe('repositorio localStorage', () => {
 
   it('guarda y recupera', async () => {
     const repo = new LocalStorageRepository(new MemoryStore());
-    const data = buildDemoData('2025-06-15');
+    const data = buildSampleData('2025-06-15');
     await repo.save(data);
     const res = await repo.load();
     expect(res.status === 'ok' && res.data).toEqual(data);

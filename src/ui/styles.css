@@ -1576,7 +1576,7 @@ kbd {
   }
   .bottom-nav {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(7, 1fr);
     position: fixed;
     inset: auto 0 0 0;
     z-index: 30;
@@ -1826,5 +1826,192 @@ kbd {
     animation: none !important;
     transition: none !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* ---------- Bienvenida (primera ejecución) ---------- */
+.welcome {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+  background:
+    radial-gradient(900px 420px at 15% -10%, color-mix(in srgb, var(--forest) 14%, transparent), transparent 70%),
+    var(--paper);
+}
+.welcome__card {
+  width: min(680px, 100%);
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  padding: clamp(22px, 5vw, 44px);
+}
+.welcome__mark {
+  display: block;
+  width: 38px;
+  height: 38px;
+  margin-bottom: 18px;
+}
+.welcome__eyebrow {
+  margin: 0 0 6px;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.welcome h1 {
+  margin: 0 0 12px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(1.7rem, 4.5vw, 2.4rem);
+  line-height: 1.12;
+}
+.welcome__lead {
+  margin: 0 0 16px;
+  color: var(--ink-2);
+  font-size: 1.05rem;
+  line-height: 1.5;
+}
+.welcome__points {
+  list-style: none;
+  margin: 0 0 24px;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  color: var(--ink-2);
+}
+.welcome__points li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.welcome__points svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--good);
+}
+.welcome__choices {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr 1fr;
+}
+.welcome__choice {
+  text-align: left;
+  display: grid;
+  gap: 6px;
+  padding: 16px 18px;
+  border-radius: 10px;
+  border: 1px solid var(--rule-strong);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.welcome__choice strong {
+  font-size: 1.05rem;
+}
+.welcome__choice span {
+  color: var(--ink-2);
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+.welcome__choice:hover {
+  border-color: var(--forest);
+  background: color-mix(in srgb, var(--forest) 6%, transparent);
+}
+.welcome__choice:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.welcome__choice--main {
+  background: var(--forest);
+  border-color: var(--forest);
+  color: var(--forest-ink);
+}
+.welcome__choice--main span {
+  color: color-mix(in srgb, var(--forest-ink) 82%, transparent);
+}
+.welcome__choice--main:hover {
+  background: var(--forest);
+  filter: brightness(1.1);
+}
+.welcome__note {
+  margin: 18px 0 0;
+  color: var(--ink-3);
+  font-size: 0.88rem;
+}
+.welcome .banner {
+  margin-top: 16px;
+}
+@media (max-width: 620px) {
+  .welcome__choices {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- Aviso de actualización ---------- */
+.update-banner {
+  position: fixed;
+  z-index: 60;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 12px 10px 18px;
+  border-radius: 12px;
+  background: var(--side);
+  color: var(--side-ink);
+  box-shadow: 0 12px 32px -12px rgba(0, 0, 0, 0.5);
+  font-weight: 600;
+}
+@media (max-width: 880px) {
+  .update-banner {
+    bottom: 84px;
+    width: calc(100% - 32px);
+    justify-content: space-between;
+  }
+}
+
+/* ---------- Presupuestos por mes, ajustes e informe anual ---------- */
+.budget-tools {
+  margin-bottom: 16px;
+}
+.tag-month {
+  margin-left: 10px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--sunken);
+  color: var(--ink-2);
+  font-family: var(--font-body);
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  vertical-align: middle;
+}
+.stats--year {
+  margin-bottom: 8px;
+}
+.settings-currency {
+  margin: 0 0 6px;
+  font-size: 1.1rem;
+}
+.panel--danger {
+  border-color: color-mix(in srgb, var(--bad) 45%, var(--rule));
+}
+.panel--danger .h-serif {
+  color: var(--bad);
+}
+@media (max-width: 880px) {
+  .bottom-nav a span {
+    font-size: 0.6rem;
+    letter-spacing: -0.01em;
+  }
+  .bottom-nav a {
+    min-width: 0;
   }
 }

@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
 import { balanceTrend, compareMonths, monthlyFlow, spendingByCategory } from '../../domain/aggregates';
 import { monthEnd, monthKey, shiftMonth } from '../../domain/dates';
-import { formatCOP, formatMonth, formatPercent } from '../../domain/format';
+import { formatCOP, formatMonth, formatMonthShort, formatPercent } from '../../domain/format';
 import { Amount, EmptyState, MonthPicker, PageHeader } from '../components/common';
+import { Icon } from '../components/Icon';
 import { Donut, FlowBars, TrendLine } from '../charts/charts';
 import { useLedger } from '../store';
 
@@ -22,6 +23,8 @@ export function Reports() {
   const { data, today } = useLedger();
   const [month, setMonth] = useState(monthKey(today));
   const prev = shiftMonth(month, -1);
+  const currentYear = Number(today.slice(0, 4));
+  const [year, setYear] = useState(currentYear);
 
   const view = useMemo(() => {
     const slices = spendingByCategory(data.transactions, data.categories, month);
@@ -32,11 +35,19 @@ export function Reports() {
     return { slices, total, flow, trend, cmp: compareMonths(data.transactions, month) };
   }, [data, month, today]);
 
+  const annual = useMemo(() => {
+    const flow = monthlyFlow(data.transactions, `${year}-12`, 12);
+    const income = flow.reduce((s, f) => s + f.income, 0);
+    const expense = flow.reduce((s, f) => s + f.expense, 0);
+    const peak = flow.reduce((best, f) => (f.expense > best.expense ? f : best), flow[0]!);
+    return { flow, income, expense, net: income - expense, peak };
+  }, [data.transactions, year]);
+
   if (data.transactions.length === 0) {
     return (
       <>
         <PageHeader title="Informes" lead="Gráficos de tus gastos, ingresos y saldo." />
-        <EmptyState icon="chart" title="Sin datos para graficar">Registra movimientos o carga los datos de ejemplo desde «Importar y respaldo» para ver los informes.</EmptyState>
+        <EmptyState icon="chart" title="Sin datos para graficar">Registra movimientos o carga datos de ejemplo desde «Importar y respaldo» para ver los informes.</EmptyState>
       </>
     );
   }
@@ -89,6 +100,31 @@ export function Reports() {
             <p className="chart-key"><i className="key key--income" /> Ingresos <i className="key key--expense" /> Gastos</p>
           </div>
           <FlowBars flow={view.flow} />
+        </section>
+
+        <section className="panel panel--wide" aria-labelledby="r-year" data-testid="informe-anual">
+          <div className="panel__head">
+            <h2 id="r-year" className="h-serif">Resumen de {year}</h2>
+            <div className="month-picker" role="group" aria-label="Año">
+              <button type="button" className="icon-btn" onClick={() => setYear(year - 1)} aria-label="Año anterior"><Icon name="left" /></button>
+              <span className="month-picker__label" aria-live="polite">{year}</span>
+              <button type="button" className="icon-btn" onClick={() => setYear(year + 1)} aria-label="Año siguiente" disabled={year >= currentYear}><Icon name="right" /></button>
+            </div>
+          </div>
+          {annual.income === 0 && annual.expense === 0 ? (
+            <p className="muted">No hay movimientos registrados en {year}.</p>
+          ) : (
+            <>
+              <ul className="stats stats--year">
+                <li><strong data-testid="anual-ingresos">{formatCOP(annual.income)}</strong> ingresos</li>
+                <li><strong data-testid="anual-gastos">{formatCOP(annual.expense)}</strong> gastos</li>
+                <li><strong>{formatCOP(annual.net)}</strong> balance del año</li>
+                {annual.peak.expense > 0 && <li><strong>{formatMonthShort(annual.peak.month)}</strong> mes de mayor gasto</li>}
+              </ul>
+              <p className="chart-key"><i className="key key--income" /> Ingresos <i className="key key--expense" /> Gastos</p>
+              <FlowBars flow={annual.flow} />
+            </>
+          )}
         </section>
 
         <section className="panel panel--wide" aria-labelledby="r-trend">

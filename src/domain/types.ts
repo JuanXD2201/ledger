@@ -54,8 +54,10 @@ export interface Recurring {
 
 export interface Budget {
   categoryId: string;
-  /** Límite mensual en COP. */
+  /** Límite mensual en COP. En entradas con mes, 0 significa «sin presupuesto ese mes». */
   limit: number;
+  /** Sin mes: plantilla base que rige todos los meses sin ajuste propio. Con mes: ajuste solo para ese mes. */
+  month?: MonthKey;
 }
 
 export interface LedgerData {

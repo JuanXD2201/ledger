@@ -7,6 +7,7 @@ export const ROUTES = [
   { path: 'informes', label: 'Informes', short: 'Informes', key: 'i' },
   { path: 'cuentas', label: 'Cuentas', short: 'Cuentas', key: 'c' },
   { path: 'datos', label: 'Importar y respaldo', short: 'Datos', key: 'd' },
+  { path: 'ajustes', label: 'Ajustes', short: 'Ajustes', key: 'a' },
 ] as const;
 
 export type RoutePath = (typeof ROUTES)[number]['path'];

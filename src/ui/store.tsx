@@ -1,12 +1,15 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { copyBudgetsToMonth, resetMonthBudgets, setMonthBudget } from '../domain/budgets';
 import { todayISO } from '../domain/dates';
 import { makeId } from '../domain/ids';
 import { applyRecurring } from '../domain/recurrence';
-import { buildDemoData, starterData } from '../domain/seed';
-import type { Account, Category, ISODate, LedgerData, Recurring, Transaction } from '../domain/types';
+import { buildSampleData, starterData } from '../domain/seed';
+import type { Account, Category, ISODate, LedgerData, MonthKey, Recurring, Transaction } from '../domain/types';
 import { createBrowserStore, LocalStorageRepository, type LedgerRepository } from '../storage/repository';
+import { Welcome } from './pages/Welcome';
+import { clearSettings } from './settings';
 
-type Phase = { name: 'loading' } | { name: 'error'; errors: string[]; raw: string } | { name: 'ready' };
+type Phase = { name: 'loading' } | { name: 'welcome' } | { name: 'error'; errors: string[]; raw: string } | { name: 'ready' };
 
 export interface LedgerApi {
   data: LedgerData;
@@ -24,10 +27,15 @@ export interface LedgerApi {
   removeAccount(id: string): string | null;
   saveRecurring(rule: Recurring): void;
   removeRecurring(id: string): void;
-  setBudget(categoryId: string, limit: number | null): void;
+  /** Fija (o quita, con null) el límite de una categoría solo para ese mes. */
+  setBudget(month: MonthKey, categoryId: string, limit: number | null): void;
+  copyBudgets(from: MonthKey, to: MonthKey): void;
+  resetBudgets(month: MonthKey): void;
   replaceAll(data: LedgerData): void;
-  loadDemo(): void;
+  loadSample(): void;
   startEmpty(): void;
+  /** Borra todos los datos del navegador y vuelve a la pantalla de bienvenida. */
+  wipeAll(): Promise<void>;
 }
 
 const Ctx = createContext<LedgerApi | null>(null);
@@ -55,7 +63,8 @@ export function LedgerProvider({ children, repository }: { children: ReactNode; 
     void repo.load().then((res) => {
       if (cancelled) return;
       if (res.status === 'error') return setPhase({ name: 'error', errors: res.errors, raw: res.raw });
-      setData(applyRecurring(res.status === 'ok' ? res.data : buildDemoData(today), today));
+      if (res.status === 'empty') return setPhase({ name: 'welcome' });
+      setData(applyRecurring(res.data, today));
       loaded.current = true;
       setPhase({ name: 'ready' });
     });
@@ -120,23 +129,34 @@ export function LedgerProvider({ children, repository }: { children: ReactNode; 
       removeRecurring(id) {
         setData((d) => ({ ...d, recurring: d.recurring.filter((r) => r.id !== id) }));
       },
-      setBudget(categoryId, limit) {
-        setData((d) => {
-          const rest = d.budgets.filter((b) => b.categoryId !== categoryId);
-          return { ...d, budgets: limit === null ? rest : [...rest, { categoryId, limit }] };
-        });
+      setBudget(month, categoryId, limit) {
+        setData((d) => ({ ...d, budgets: setMonthBudget(d.budgets, month, categoryId, limit) }));
+      },
+      copyBudgets(from, to) {
+        setData((d) => ({ ...d, budgets: copyBudgetsToMonth(d.budgets, from, to) }));
+      },
+      resetBudgets(month) {
+        setData((d) => ({ ...d, budgets: resetMonthBudgets(d.budgets, month) }));
       },
       replaceAll(next) {
         setData(applyRecurring(next, today));
       },
-      loadDemo() {
-        setData(applyRecurring(buildDemoData(today), today));
+      loadSample() {
+        setData(applyRecurring(buildSampleData(today), today));
       },
       startEmpty() {
         setData(starterData());
       },
+      async wipeAll() {
+        loaded.current = false;
+        await repo.clear();
+        clearSettings();
+        setData(starterData());
+        setSaveError(null);
+        setPhase({ name: 'welcome' });
+      },
     }),
-    [data, today, persistent, saveError],
+    [data, today, persistent, saveError, repo],
   );
 
   if (phase.name === 'loading') {
@@ -146,6 +166,14 @@ export function LedgerProvider({ children, repository }: { children: ReactNode; 
         <p>Abriendo tu libro…</p>
       </div>
     );
+  }
+  if (phase.name === 'welcome') {
+    const begin = (next: LedgerData) => {
+      loaded.current = true;
+      setData(applyRecurring(next, today));
+      setPhase({ name: 'ready' });
+    };
+    return <Welcome persistent={persistent} onEmpty={() => begin(starterData())} onSample={() => begin(buildSampleData(today))} />;
   }
   if (phase.name === 'error') {
     return <StorageError errors={phase.errors} raw={phase.raw} onReset={async () => { await repo.clear(); location.reload(); }} />;
@@ -166,7 +194,7 @@ function StorageError({ errors, raw, onReset }: { errors: string[]; raw: string;
   return (
     <main className="boot boot--error" role="alert">
       <h1>No pudimos leer tus datos guardados</h1>
-      <p>Por seguridad no los modificamos. Puedes descargar una copia tal como está y luego reiniciar con datos de ejemplo.</p>
+      <p>Por seguridad no los modificamos. Puedes descargar una copia tal como está y luego empezar de nuevo desde la bienvenida.</p>
       <ul>
         {errors.map((e) => (
           <li key={e}>{e}</li>
@@ -175,9 +203,9 @@ function StorageError({ errors, raw, onReset }: { errors: string[]; raw: string;
       <div className="row">
         <button className="btn" type="button" onClick={download}>Descargar copia original</button>
         {confirming ? (
-          <button className="btn btn--danger" type="button" onClick={onReset}>Sí, reiniciar ahora</button>
+          <button className="btn btn--danger" type="button" onClick={onReset}>Sí, empezar de nuevo</button>
         ) : (
-          <button className="btn btn--ghost" type="button" onClick={() => setConfirming(true)}>Reiniciar con datos de ejemplo</button>
+          <button className="btn btn--ghost" type="button" onClick={() => setConfirming(true)}>Empezar de nuevo</button>
         )}
       </div>
     </main>

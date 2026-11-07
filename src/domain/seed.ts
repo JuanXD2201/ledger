@@ -67,17 +67,17 @@ const TEMPLATES: Template[] = [
 const round1000 = (n: number) => Math.round(n / 1000) * 1000;
 
 /**
- * Datos de demostración realistas para los últimos ~6 meses, relativos a `today`.
+ * Datos de ejemplo realistas para los últimos ~6 meses, relativos a `today`.
  * El mes en curso queda con presupuestos en aviso (Mercado, 86 %) y superados (Restaurantes, 108 %).
  */
-export function buildDemoData(today: ISODate): LedgerData {
+export function buildSampleData(today: ISODate): LedgerData {
   const rand = mulberry32(2201);
   const pick = <T,>(list: readonly T[]) => list[Math.floor(rand() * list.length)]!;
   const currentMonth = monthKey(today);
   const firstMonth = shiftMonth(currentMonth, -5);
   const windowStart = monthStart(firstMonth);
   let counter = 0;
-  const id = () => `demo-${(counter += 1).toString(36)}`;
+  const id = () => `ej-${(counter += 1).toString(36)}`;
 
   // Mes inicial con 31 días, para que el día ancla del seguro (31) sea real y se ajuste en meses cortos.
   let anchorMonth = firstMonth;
@@ -155,7 +155,7 @@ export function buildDemoData(today: ISODate): LedgerData {
 
   const data = applyRecurring(base, today);
 
-  // Ajusta el mes en curso para que la demo muestre un aviso al 80 % y un presupuesto superado.
+  // Ajusta el mes en curso para que el ejemplo muestre un aviso al 80 % y un presupuesto superado.
   // Se reemplazan los gastos sueltos de esas categorías por varios movimientos que suman el objetivo.
   const targets: [string, number, string[]][] = [
     ['cat-mercado', 0.86, ['Compra grande del mes', 'Frutas y verduras', 'Supermercado']],

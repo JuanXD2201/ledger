@@ -1,7 +1,7 @@
 import { balanceTrend, compareMonths, monthlyFlow, spendingByCategory } from '../domain/aggregates';
 import { accounts, categories, tx } from '../domain/fixtures';
 import { allTags, emptyFilter, filterTransactions, hasActiveFilter, paginate, parseTags, sortTransactions } from '../domain/filters';
-import { buildDemoData } from '../domain/seed';
+import { buildSampleData } from '../domain/seed';
 import { applyRecurring } from '../domain/recurrence';
 import { validateTxDraft, type TxDraft } from '../domain/validation';
 import { netWorth } from '../domain/balances';
@@ -108,8 +108,8 @@ describe('validación del formulario', () => {
 
 describe('datos de ejemplo', () => {
   it('son deterministas y dejan presupuestos en aviso y superados este mes', () => {
-    const a = buildDemoData('2025-11-20');
-    const b = buildDemoData('2025-11-20');
+    const a = buildSampleData('2025-11-20');
+    const b = buildSampleData('2025-11-20');
     expect(a).toEqual(b);
     const st = budgetStatuses(a.budgets, a.transactions, '2025-11');
     expect(st.find((s) => s.categoryId === 'cat-restaurantes')!.level).toBe('exceeded');
@@ -117,7 +117,7 @@ describe('datos de ejemplo', () => {
   });
 
   it('no tienen movimientos futuros y el seguro mensual del 31 baja a fin de febrero', () => {
-    const d = buildDemoData('2025-03-10');
+    const d = buildSampleData('2025-03-10');
     expect(d.transactions.every((t) => t.date <= '2025-03-10')).toBe(true);
     expect(applyRecurring(d, '2025-03-10')).toBe(d);
     expect(d.transactions.some((t) => t.recurringId === 'rec-seguro' && t.date === '2025-02-28')).toBe(true);

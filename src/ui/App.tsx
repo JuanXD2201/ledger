@@ -4,11 +4,13 @@ import { Icon, type IconName } from './components/Icon';
 import { Modal } from './components/Modal';
 import { TransactionForm } from './components/TransactionForm';
 import { isTyping, ROUTES, useRoute, useTheme, type RoutePath } from './hooks';
+import { InstallButton, UpdateBanner } from './components/PwaControls';
 import { Accounts } from './pages/Accounts';
 import { Budgets } from './pages/Budgets';
 import { DataPage } from './pages/DataPage';
 import { Dashboard } from './pages/Dashboard';
 import { Reports } from './pages/Reports';
+import { Settings } from './pages/Settings';
 import { Transactions } from './pages/Transactions';
 import { LedgerProvider } from './store';
 import { ToastProvider } from './toast';
@@ -20,6 +22,7 @@ const ICONS: Record<RoutePath, IconName> = {
   informes: 'chart',
   cuentas: 'wallet',
   datos: 'data',
+  ajustes: 'settings',
 };
 
 const SHORTCUTS: [string, string][] = [
@@ -31,6 +34,7 @@ const SHORTCUTS: [string, string][] = [
   ['G luego I', 'Ir a informes'],
   ['G luego C', 'Ir a cuentas'],
   ['G luego D', 'Ir a importar y respaldo'],
+  ['G luego A', 'Ir a ajustes'],
   ['T', 'Cambiar tema claro/oscuro'],
   ['?', 'Ver esta ayuda'],
   ['Esc', 'Cerrar cuadros de diálogo'],
@@ -133,7 +137,8 @@ function Shell() {
         <div className="sidebar__foot">
           <button type="button" className="side-btn" onClick={() => setHelp(true)}><Icon name="keyboard" size={18} /> Atajos <kbd>?</kbd></button>
           <button type="button" className="side-btn" onClick={toggleTheme} aria-label={themeLabel}><Icon name={theme === 'claro' ? 'moon' : 'sun'} size={18} /> {themeLabel}</button>
-          <p className="sidebar__note">Tus datos viven solo en este navegador. Proyecto demostrativo.</p>
+          <InstallButton />
+          <p className="sidebar__note">Tus datos viven solo en este navegador. Funciona sin conexión.</p>
         </div>
       </aside>
 
@@ -152,6 +157,7 @@ function Shell() {
         {route === 'informes' && <Reports />}
         {route === 'cuentas' && <Accounts />}
         {route === 'datos' && <DataPage />}
+        {route === 'ajustes' && <Settings />}
       </main>
 
       <button type="button" className="fab" onClick={openNew} aria-label="Nuevo movimiento"><Icon name="plus" size={26} /></button>
@@ -164,6 +170,8 @@ function Shell() {
           </a>
         ))}
       </nav>
+
+      <UpdateBanner />
 
       <TransactionForm open={txModal.open} editing={txModal.editing} onClose={closeTx} />
 

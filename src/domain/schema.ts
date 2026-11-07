@@ -124,8 +124,11 @@ export function validateData(input: unknown): ReadResult {
   });
 
   (input.budgets as unknown[]).forEach((b, i) => {
-    if (!isRec(b) || !isStr(b.categoryId) || !isInt(b.limit) || b.limit <= 0 || !categoryIds.has(b.categoryId)) return fail(`Presupuesto ${i + 1}: datos inválidos.`);
-    budgets.push({ categoryId: b.categoryId, limit: b.limit });
+    if (!isRec(b) || !isStr(b.categoryId) || !isInt(b.limit) || !categoryIds.has(b.categoryId)) return fail(`Presupuesto ${i + 1}: datos inválidos.`);
+    const month = b.month;
+    if (month !== undefined && !(isStr(month) && /^\d{4}-(0[1-9]|1[0-2])$/.test(month))) return fail(`Presupuesto ${i + 1}: mes inválido.`);
+    if (b.limit < 0 || (b.limit === 0 && month === undefined)) return fail(`Presupuesto ${i + 1}: el límite debe ser mayor que cero.`);
+    budgets.push({ categoryId: b.categoryId, limit: b.limit, ...(isStr(month) ? { month } : {}) });
   });
 
   return errors.length > 0 ? { ok: false, errors } : { ok: true, data: { accounts, categories, transactions, recurring, budgets } };
