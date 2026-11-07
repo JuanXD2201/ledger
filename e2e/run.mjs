@@ -1,8 +1,9 @@
 // Pruebas e2e con playwright-core sobre el build de producción (dist/ servido con vite preview).
 // Cada prueba usa un contexto limpio (sin localStorage) y falla si la consola registra errores.
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { BASE, iso, launch, newPage, startPreview, writeTmp } from './lib.mjs';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { BASE, iso, launch, newPage, ROOT, startPreview, writeTmp } from './lib.mjs';
 
 const tests = [];
 const test = (name, fn, options) => tests.push({ name, fn, options });
@@ -28,7 +29,7 @@ async function addExpense(page, { amount, note, category }) {
   await page.locator('.toast').first().waitFor();
 }
 
-test('arranca con datos de ejemplo y muestra el panel completo', async (page) => {
+test('los datos de ejemplo cargados desde la bienvenida muestran el panel completo', async (page) => {
   await page.waitForSelector('[data-testid="patrimonio"]');
   assert.match(await page.getByTestId('patrimonio').innerText(), /\$\s?[\d.]+/);
   assert.ok((await page.getByTestId('tx-row').count()) >= 5);
@@ -277,7 +278,7 @@ test('informes muestra dona, barras y tendencia con alternativas accesibles', as
 test('en móvil hay navegación inferior y ninguna página desborda horizontalmente', async (page) => {
   assert.ok(await page.locator('.bottom-nav').isVisible());
   assert.equal(await page.locator('.sidebar').isVisible(), false);
-  for (const route of ['panel', 'movimientos', 'presupuestos', 'informes', 'cuentas', 'datos']) {
+  for (const route of ['panel', 'movimientos', 'presupuestos', 'informes', 'cuentas', 'datos', 'ajustes']) {
     await go(page, route);
     await page.waitForTimeout(150);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
@@ -312,6 +313,182 @@ test('datos de una versión anterior (v1) se migran al abrir', async (page) => {
   assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('ledger.datos')).schemaVersion), 2);
 });
 
+// ---------------- Primera ejecución, ajustes, presupuestos por mes, informe anual ----------------
+test('primera ejecución: bienvenida sin lenguaje de demostración y la elección se recuerda', async (page) => {
+  const text = await page.locator('.welcome').innerText();
+  assert.ok(text.includes('Empezar con una base vacía') && text.includes('Cargar datos de ejemplo'));
+  assert.equal(/demo|demostra/i.test(text), false, 'la bienvenida no debe hablar de demostración');
+  assert.equal(await page.evaluate(() => localStorage.getItem('ledger.datos')), null);
+  await page.getByTestId('empezar-vacio').click();
+  await page.getByText('Todavía no hay movimientos').waitFor();
+  await page.reload();
+  await page.waitForSelector('.main');
+  assert.equal(await page.locator('.welcome').count(), 0);
+  await page.getByText('Todavía no hay movimientos').waitFor();
+}, { welcome: true });
+
+test('primera ejecución con datos de ejemplo: se guardan y no vuelve la bienvenida', async (page) => {
+  await page.getByTestId('cargar-ejemplo').click();
+  await page.waitForSelector('[data-testid="patrimonio"]');
+  await page.reload();
+  await page.waitForSelector('[data-testid="patrimonio"]');
+  assert.equal(await page.locator('.welcome').count(), 0);
+}, { welcome: true });
+
+test('ningún texto visible habla de demostración en ninguna pantalla', async (page) => {
+  for (const route of ['panel', 'movimientos', 'presupuestos', 'informes', 'cuentas', 'datos', 'ajustes']) {
+    await go(page, route);
+    const text = await page.locator('body').innerText();
+    assert.equal(/demo|demostra/i.test(text), false, `texto de demostración en #/${route}`);
+  }
+});
+
+test('ajustes: titular, moneda fija, versión y respaldo', async (page) => {
+  await go(page, 'ajustes');
+  assert.match(await page.getByTestId('version').innerText(), /^\d+\.\d+\.\d+$/);
+  assert.ok(await page.getByText('Peso colombiano (COP)').isVisible());
+  await page.getByLabel('Nombre del titular').fill('Juan Esteban');
+  await page.getByRole('button', { name: 'Guardar nombre' }).click();
+  await page.locator('.toast').first().waitFor();
+  await go(page, 'panel');
+  assert.match(await page.locator('.page-head__lead').innerText(), /^Juan Esteban, así va tu dinero/);
+  await page.reload();
+  await page.waitForSelector('.main');
+  assert.match(await page.locator('.page-head__lead').innerText(), /Juan Esteban/);
+  await go(page, 'ajustes');
+  const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Exportar respaldo' }).click()]);
+  assert.match(download.suggestedFilename(), /^ledger-respaldo-\d{4}-\d{2}-\d{2}\.json$/);
+  const backup = JSON.parse(readFileSync(await download.path(), 'utf8'));
+  assert.equal(backup.app, 'ledger');
+  assert.ok(backup.data.transactions.length > 50);
+});
+
+test('borrar todos los datos exige confirmar, limpia el navegador y vuelve a la bienvenida', async (page) => {
+  await go(page, 'ajustes');
+  await page.getByLabel('Nombre del titular').fill('Prueba');
+  await page.getByRole('button', { name: 'Guardar nombre' }).click();
+  await page.getByRole('button', { name: /Borrar todos los datos…/ }).click();
+  const dialog = page.getByRole('dialog', { name: 'Borrar todos los datos' });
+  const confirmBtn = dialog.getByRole('button', { name: 'Borrar definitivamente' });
+  assert.ok(await confirmBtn.isDisabled());
+  await dialog.getByLabel(/Escribe/).fill('borrar');
+  assert.ok(await confirmBtn.isDisabled(), 'la palabra distingue mayúsculas');
+  await dialog.getByLabel(/Escribe/).fill('BORRAR');
+  await confirmBtn.click();
+  await page.waitForSelector('.welcome');
+  const left = await page.evaluate(() => ({ datos: localStorage.getItem('ledger.datos'), ajustes: localStorage.getItem('ledger.ajustes') }));
+  assert.deepEqual(left, { datos: null, ajustes: null });
+  await page.reload();
+  await page.waitForSelector('.welcome');
+});
+
+test('presupuestos por mes: ajuste propio, copia al mes siguiente y quitar ajustes', async (page) => {
+  await go(page, 'presupuestos');
+  const month = (await page.locator('.month-picker__label').innerText()).trim();
+  const base = page.getByTestId('presupuesto-cat-ocio');
+  assert.match(await base.innerText(), /300\.000/);
+  await base.getByRole('button', { name: /Editar presupuesto/ }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByLabel(/Límite de/).fill('450000');
+  await dialog.getByRole('button', { name: 'Guardar presupuesto' }).click();
+  assert.match(await base.innerText(), /450\.000/);
+  assert.ok(await base.getByText('ajustado este mes').isVisible());
+  await page.getByTestId('copiar-mes').click();
+  await page.getByRole('button', { name: 'Mes siguiente' }).click();
+  assert.notEqual((await page.locator('.month-picker__label').innerText()).trim(), month);
+  assert.match(await page.getByTestId('presupuesto-cat-ocio').innerText(), /450\.000/);
+  // quitar los ajustes del mes siguiente no toca el mes de origen
+  await page.getByRole('button', { name: 'Quitar ajustes de este mes' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Quitar ajustes' }).click();
+  assert.match(await page.getByTestId('presupuesto-cat-ocio').innerText(), /300\.000/);
+  await page.getByRole('button', { name: 'Mes anterior' }).click();
+  assert.match(await page.getByTestId('presupuesto-cat-ocio').innerText(), /450\.000/);
+});
+
+test('informe anual: totales del año y selector de año', async (page) => {
+  await go(page, 'informes');
+  const section = page.getByTestId('informe-anual');
+  await section.waitFor();
+  assert.match(await section.getByTestId('anual-gastos').innerText(), /\$\s?[\d.]+/);
+  assert.equal(await section.locator('svg[role="img"]').count(), 1);
+  assert.ok(await section.getByRole('button', { name: 'Año siguiente' }).isDisabled());
+  await section.getByRole('button', { name: 'Año anterior' }).click();
+  await section.getByRole('button', { name: 'Año siguiente' }).click();
+});
+
+// ---------------- Aplicación instalable y sin conexión ----------------
+test('PWA: manifiesto válido, iconos y service worker activo', async (page) => {
+  const manifest = await page.evaluate(async () => {
+    const href = document.querySelector('link[rel="manifest"]').getAttribute('href');
+    const res = await fetch(href);
+    return { href, json: await res.json() };
+  });
+  assert.equal(manifest.href, './manifest.webmanifest');
+  assert.equal(manifest.json.display, 'standalone');
+  assert.equal(manifest.json.start_url, './');
+  assert.equal(manifest.json.scope, './');
+  assert.ok(manifest.json.icons.some((i) => i.sizes === '192x192') && manifest.json.icons.some((i) => i.purpose === 'maskable'));
+  for (const icon of manifest.json.icons) {
+    const ok = await page.evaluate(async (src) => (await fetch(src)).ok, icon.src);
+    assert.ok(ok, 'falta el icono ' + icon.src);
+  }
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  assert.ok(await page.evaluate(() => navigator.serviceWorker.getRegistration().then((r) => Boolean(r?.active))));
+});
+
+test('PWA sin conexión: tras la primera carga, la app abre, navega y guarda sin red', async (page, context) => {
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  await page.reload();
+  await page.waitForSelector('.main');
+  await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller));
+  await context.setOffline(true);
+  await page.reload();
+  await page.waitForSelector('[data-testid="patrimonio"]');
+  await go(page, 'presupuestos');
+  await go(page, 'informes');
+  assert.ok((await page.locator('svg[role="img"]').count()) >= 3);
+  assert.ok(await page.evaluate(() => document.fonts.check('16px "Fraunces Variable"')));
+  await addExpense(page, { amount: '4321', note: 'Sin conexión e2e', category: 'Mercado' });
+  await search(page, 'Sin conexión e2e');
+  assert.equal(await count(page), 1);
+  await context.setOffline(false);
+});
+
+test('PWA: una versión nueva muestra «Hay una versión nueva» y Recargar la activa', async (page) => {
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  await page.reload();
+  await page.waitForSelector('.main');
+  await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller));
+  const swFile = join(ROOT, 'dist', 'sw.js');
+  const original = readFileSync(swFile, 'utf8');
+  try {
+    writeFileSync(swFile, original.replace(/const CACHE = PREFIX \+ '[0-9a-f]+'/, "const CACHE = PREFIX + 'zzz-nueva'"));
+    await page.evaluate(() => navigator.serviceWorker.getRegistration().then((r) => r.update()));
+    await page.getByTestId('aviso-actualizacion').waitFor();
+    assert.match(await page.getByTestId('aviso-actualizacion').innerText(), /Hay una versión nueva/);
+    await Promise.all([page.waitForEvent('load'), page.getByRole('button', { name: 'Recargar' }).click()]);
+    await page.waitForSelector('.main');
+    assert.equal(await page.getByTestId('aviso-actualizacion').count(), 0);
+    assert.deepEqual(await page.evaluate(() => caches.keys()), ['ledger-zzz-nueva']);
+  } finally {
+    writeFileSync(swFile, original);
+  }
+});
+
+test('el botón «Instalar aplicación» aparece cuando el navegador lo permite', async (page) => {
+  assert.equal(await page.getByRole('button', { name: 'Instalar aplicación' }).count(), 0);
+  await page.evaluate(() => {
+    const e = new Event('beforeinstallprompt', { cancelable: true });
+    e.prompt = () => Promise.resolve();
+    e.userChoice = Promise.resolve({ outcome: 'accepted' });
+    window.dispatchEvent(e);
+  });
+  const btn = page.getByRole('button', { name: 'Instalar aplicación' }).first();
+  await btn.waitFor();
+  await btn.click();
+  await page.waitForFunction(() => ![...document.querySelectorAll('button')].some((b) => b.textContent.includes('Instalar aplicación')));
+});
+
 // ---------------- ejecución ----------------
 const server = await startPreview();
 const browser = await launch();
@@ -322,8 +499,12 @@ for (const t of tests) {
   const { context, page, problems } = await newPage(browser, { viewport: { width: 1440, height: 900 }, colorScheme: 'light', ...(t.options ?? {}) });
   try {
     await page.goto(BASE);
-    await page.waitForSelector('.main');
-    await t.fn(page);
+    if (t.options?.welcome) await page.waitForSelector('.welcome');
+    else {
+      await page.getByTestId('cargar-ejemplo').click();
+      await page.waitForSelector('.main');
+    }
+    await t.fn(page, context);
     const real = problems.filter(() => !t.options?.allowConsole);
     assert.deepEqual(real, [], `errores de consola: ${real.join(' | ')}`);
     passed += 1;

@@ -61,7 +61,7 @@ El respaldo JSON usa el mismo sobre más `app: "ledger"` y `exportedAt`, por lo 
 - `store.tsx` contiene `LedgerProvider`. Carga desde el repositorio (estados de carga y de error), aplica las recurrentes, guarda tras cada cambio y expone acciones (`addTransaction`, `importData`, `replaceAll`…). Los componentes no tocan el repositorio.
 - `toast.tsx` ofrece avisos con acción opcional (por ejemplo, "Deshacer").
 - `hooks.ts` resuelve la navegación por hash, el tema y la detección de campos de texto para los atajos.
-- `pages/` tiene una pantalla por ruta: Panel, Movimientos, Presupuestos, Informes, Cuentas y Datos.
+- `pages/` tiene una pantalla por ruta: Bienvenida (primera ejecución), Panel, Movimientos, Presupuestos, Informes, Cuentas, Datos y Ajustes.
 - `components/` agrupa lo compartido: `Modal` (elemento `<dialog>` nativo, con foco atrapado y cierre con Esc), `TransactionForm`, `TxTable` y piezas como la barra de progreso o el selector de mes.
 - `charts/` dibuja dona, barras y línea en SVG. Miden el ancho real del contenedor para que los textos sean legibles en móvil, llevan `role="img"` con una descripción completa y títulos nativos en cada elemento.
 
@@ -69,10 +69,25 @@ El respaldo JSON usa el mismo sobre más `app: "ledger"` y `exportedAt`, por lo 
 
 Papel marfil, verde bosque y terracota. Los titulares usan Fraunces; el texto, Source Sans 3; las cifras, IBM Plex Mono con números tabulares. La referencia es el libro contable: filas con reglas finas y doble raya bajo cada total. Los ingresos van en verde, los gastos en terracota y las alertas en ámbar, siempre acompañadas de texto o icono para no depender solo del color. El tema oscuro redefine las mismas variables CSS (`:root[data-theme='oscuro']`). La única animación no solicitada es el llenado de las barras de presupuesto, y se desactiva con `prefers-reduced-motion`.
 
+## Aplicación instalable (PWA)
+
+- `public/manifest.webmanifest` declara nombre, colores, `display: standalone`, `start_url` y `scope` relativos (`./`) e iconos 192, 512 y maskable. Los PNG se generan con `scripts/iconos.mjs` desde SVG propios.
+- `pwa-plugin.ts` es un plugin de Vite que, al terminar el build, recorre `dist/`, calcula un hash del contenido y escribe `sw.js` con la lista de archivos a precachear (rutas relativas) y una caché con ese hash.
+- `sw.js` sirve `index.html` para toda navegación y responde los demás archivos desde la caché (`ignoreVary` evita fallos por cabeceras `Vary` del alojamiento). La versión nueva queda en espera: `src/pwa.ts` la detecta, la interfaz muestra «Hay una versión nueva» y solo al pulsar Recargar se activa (`SKIP_WAITING`) y se recarga.
+- `src/pwa.ts` expone el estado (actualización lista, instalable, instalada, lista sin conexión) a la interfaz y gestiona el evento `beforeinstallprompt` del botón «Instalar aplicación».
+
+## Primera ejecución y borrado
+
+Si el repositorio devuelve `empty`, `LedgerProvider` muestra `Welcome` en lugar de crear datos: las dos opciones (base vacía o datos de ejemplo) guardan el libro y, con él, la decisión. `wipeAll()` borra la clave de datos y los ajustes y vuelve a la bienvenida.
+
+## Presupuestos por mes
+
+`Budget.month` opcional: sin mes es la plantilla base; con mes reemplaza la base solo ese mes y un límite 0 oculta la categoría. `effectiveBudgets`, `setMonthBudget`, `copyBudgetsToMonth` y `resetMonthBudgets` (en `domain/budgets.ts`) son funciones puras con pruebas propias.
+
 ## Pruebas
 
-- **Jest** (`src/test`): 93 pruebas sobre el dominio y el repositorio, en entorno Node, sin DOM.
-- **Playwright** (`e2e`): 22 pruebas sobre `dist/` servido con `vite preview`, usando Chrome ya instalado a través de `playwright-core`. `e2e/capturas.mjs` genera las imágenes de `docs/screenshots` con el mismo build.
+- **Jest** (`src/test`): 104 pruebas sobre el dominio y el repositorio, en entorno Node, sin DOM.
+- **Playwright** (`e2e`): 33 pruebas sobre `dist/` servido con `vite preview`, usando Chrome ya instalado a través de `playwright-core`. `e2e/capturas.mjs` genera las imágenes de `docs/screenshots` con el mismo build.
 
 ## Límites conocidos
 

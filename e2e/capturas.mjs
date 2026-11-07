@@ -39,8 +39,11 @@ async function shoot(page, name, { full = true } = {}) {
 async function session(label, options, steps) {
   const { context, page, problems: p } = await newPage(browser, options);
   await page.goto(BASE);
+  await page.waitForSelector('.welcome');
+  if (label === 'escritorio-claro' || label === 'movil') await shoot(page, `bienvenida-${label}`, { full: false });
+  await page.getByTestId('cargar-ejemplo').click();
   await page.waitForSelector('.main');
-  await steps(page);
+  await steps(page, context);
   problems.push(...p.map((x) => `[${label}] ${x}`));
   await context.close();
 }
@@ -59,6 +62,8 @@ async function recorrido(page, theme, suffix, viewportLabel) {
   await shoot(page, `presupuestos-${suffix}`);
   await go('#/informes');
   await shoot(page, `informes-${suffix}`);
+  await go('#/ajustes');
+  await shoot(page, `ajustes-${suffix}`);
   await go('#/datos');
   await page.setInputFiles('[data-testid="archivo-csv"]', writeTmp('importar.csv', csv));
   await page.waitForSelector('[data-testid="vista-previa"]');
@@ -76,6 +81,21 @@ await session('escritorio-oscuro', { viewport: { width: 1440, height: 900 }, col
   await recorrido(p, 'oscuro', 'escritorio-oscuro');
 });
 await session('movil', { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, colorScheme: 'light' }, (p) => recorrido(p, 'claro', 'movil'));
+
+// Sin conexión: la app instalada abre y navega desde la caché del service worker.
+await session('sin-conexion', { viewport: { width: 1440, height: 900 }, colorScheme: 'light' }, async (page, context) => {
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  await page.reload();
+  await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller));
+  await context.setOffline(true);
+  await page.reload();
+  await page.waitForSelector('.main');
+  await page.evaluate(() => (window.location.hash = '#/ajustes'));
+  await page.waitForSelector('.main h1');
+  await page.getByText('Lista: funciona sin internet').waitFor();
+  await shoot(page, 'ajustes-sin-conexion');
+  await context.setOffline(false);
+});
 
 await browser.close();
 server.stop();
