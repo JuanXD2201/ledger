@@ -6,6 +6,9 @@ import '@fontsource/ibm-plex-mono/latin-400.css';
 import '@fontsource/ibm-plex-mono/latin-500.css';
 import App from './ui/App';
 import './ui/styles.css';
+import { registerPwa } from './pwa';
+
+registerPwa();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
